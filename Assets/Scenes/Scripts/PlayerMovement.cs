@@ -19,6 +19,12 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // Don't move if a plant is growing (player is being held on the plant)
+        if (PlantGrowthAnimator.IsPlantGrowing)
+        {
+            return;
+        }
+        
         // Horizontal Movement only (A and D keys)
         float moveX = Input.GetAxisRaw("Horizontal");
         

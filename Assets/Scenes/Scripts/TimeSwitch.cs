@@ -33,6 +33,12 @@ public class TimeSwitch : MonoBehaviour
     void Update() {
         // 1. Toggle Mode with 'E'
         if (Input.GetKeyDown(KeyCode.E)) {
+            // Don't allow time switching if plants are currently growing
+            if (PlantGrowthAnimator.IsPlantGrowing) {
+                Debug.Log("Cannot switch time while plants are growing!");
+                return;
+            }
+            
             bool wasPastMode = isPastMode;
             isPastMode = !isPastMode;
             
