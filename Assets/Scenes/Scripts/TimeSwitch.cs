@@ -64,6 +64,13 @@ public class TimeSwitch : MonoBehaviour
                 return;
             }
             
+            // Don't allow time switching if player is planting
+            PlayerMovement playerMovement = player != null ? player.GetComponent<PlayerMovement>() : null;
+            if (playerMovement != null && playerMovement.IsPlantingAnimationPlaying()) {
+                Debug.Log("Cannot switch time while planting!");
+                return;
+            }
+            
             bool wasPastMode = isPastMode;
             isPastMode = !isPastMode;
             
