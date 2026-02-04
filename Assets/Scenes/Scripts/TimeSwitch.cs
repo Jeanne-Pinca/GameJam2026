@@ -18,10 +18,17 @@ public class TimeSwitch : MonoBehaviour
     private PlantingSystem plantingSystem;
     private Camera mainCamera;
     private SpriteRenderer[] backgroundSprites;
+    private GameObject player;
+    [SerializeField] private float filterFadeDistance = 20f; // Distance at which filter fully fades
+    [SerializeField] private int chunkWidth = 16;
+    [SerializeField] private int maxInstance = 10;
+    private SustenanceSystem sustenanceSystem;
 
     void Start() {
         plantingSystem = GetComponent<PlantingSystem>();
         mainCamera = Camera.main;
+        player = GameObject.Find("Player");
+        sustenanceSystem = GetComponent<SustenanceSystem>();
         
         // Get MaskIcon from maskUI if not assigned
         if (maskUI != null && maskIcon == null) {
@@ -44,6 +51,11 @@ public class TimeSwitch : MonoBehaviour
     }
 
     void Update() {
+        // Update background filter based on player distance (in present mode only)
+        if (!isPastMode && player != null) {
+            UpdateBackgroundFilter();
+        }
+        
         // 1. Toggle Mode with 'E'
         if (Input.GetKeyDown(KeyCode.E)) {
             // Don't allow time switching if plants are currently growing
@@ -97,10 +109,32 @@ public class TimeSwitch : MonoBehaviour
 
     void UpdateBackgroundFilter() {
         if (backgroundSprites != null && backgroundSprites.Length > 0) {
-            foreach (SpriteRenderer sprite in backgroundSprites) {
-                if (sprite != null) {
-                    // Apply gray filter in present mode, white (no filter) in past mode
-                    sprite.color = isPastMode ? Color.white : presentFilterColor;
+            // In present mode, fade filter based on distance to last instance
+            if (!isPastMode && mainCamera != null) {
+                // Get current instance based on camera position
+                float cameraX = mainCamera.transform.position.x;
+                int currentInstance = Mathf.FloorToInt(cameraX / chunkWidth);
+                
+                // Distance to last instance
+                int distanceToEnd = maxInstance - currentInstance;
+                
+                // Fade the alpha based on distance to last instance
+                float fadeAlpha = Mathf.Clamp01((float)distanceToEnd / filterFadeDistance);
+                
+                // Fade from gray filter to white (no filter, showing original background)
+                Color filterColor = Color.Lerp(Color.white, presentFilterColor, fadeAlpha);
+                
+                foreach (SpriteRenderer sprite in backgroundSprites) {
+                    if (sprite != null) {
+                        sprite.color = filterColor;
+                    }
+                }
+            } else {
+                // In past mode, no filter
+                foreach (SpriteRenderer sprite in backgroundSprites) {
+                    if (sprite != null) {
+                        sprite.color = Color.white;
+                    }
                 }
             }
         }
