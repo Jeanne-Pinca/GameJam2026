@@ -8,8 +8,10 @@ public class ProceduralGeneration : MonoBehaviour
     [SerializeField] int width, height;
     [SerializeField] float smoothness;
     [SerializeField] float seed;
-    [SerializeField] TileBase groundTile;
-    [SerializeField] Tilemap groundTilemap;
+    [SerializeField] TileBase groundTile_Past;
+    [SerializeField] TileBase groundTile_Present;
+    [SerializeField] Tilemap groundTilemap_Past;
+    [SerializeField] Tilemap groundTilemap_Present;
     [SerializeField] Transform targetCamera;
     [SerializeField] int chunksAhead = 1;
     [SerializeField] int chunksBehind = 1;
@@ -57,7 +59,8 @@ public class ProceduralGeneration : MonoBehaviour
     */
     void GenerateInitialChunks()
     {
-        groundTilemap.ClearAllTiles();
+        groundTilemap_Past.ClearAllTiles();
+        groundTilemap_Present.ClearAllTiles();
         generatedChunks.Clear();
         lastCenterChunk = int.MinValue;
         allowBackwardGeneration = false; // Disable backward generation on start
@@ -298,7 +301,8 @@ public class ProceduralGeneration : MonoBehaviour
         int startX = chunkIndex * width;
         int[,] map = GenerateArray(width, height, true);
         map = TerrainGeneration(map, startX);
-        RenderMap(map, groundTilemap, groundTile, startX);
+        RenderMap(map, groundTilemap_Past, groundTile_Past, startX);
+        RenderMap(map, groundTilemap_Present, groundTile_Present, startX);
     }
 
     void DeleteChunk(int chunkIndex)
@@ -308,7 +312,8 @@ public class ProceduralGeneration : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                groundTilemap.SetTile(new Vector3Int(startX + x, y, 0), null);
+                groundTilemap_Past.SetTile(new Vector3Int(startX + x, y, 0), null);
+                groundTilemap_Present.SetTile(new Vector3Int(startX + x, y, 0), null);
             }
         }
     }

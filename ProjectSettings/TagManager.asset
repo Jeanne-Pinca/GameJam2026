@@ -18,7 +18,7 @@ TagManager:
   - Ground
   - Plant
   - Screen
-  - 
+  - Background
   - 
   - 
   - 
@@ -42,4 +42,16 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: -10
+    uniqueID: 2270422907
+    locked: 0
+  - name: -9
+    uniqueID: 831932453
+    locked: 0
+  - name: -8
+    uniqueID: 3983692821
+    locked: 0
+  - name: -7
+    uniqueID: 2308036701
     locked: 0
