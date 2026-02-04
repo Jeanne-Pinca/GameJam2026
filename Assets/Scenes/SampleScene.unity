@@ -156,7 +156,7 @@ MonoBehaviour:
   maxInstance: 10
   winScreen: {fileID: 1955053875}
   maxSustenance: 10
-  sustenanceDecreaseRate: 0.5
+  sustenanceDecreaseRate: 0.2
   plantingBonusSustenance: 5
 --- !u!4 &108657770
 Transform:
@@ -3184,7 +3184,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 4
-  jumpForce: 6.5
+  jumpForce: 7
   maxJumpTime: 0.1
   jumpCancelMultiplier: 0.5
   defaultAnimatorController: {fileID: 9100000, guid: c13edcdc08f312e4690e316de4535c89,

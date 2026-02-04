@@ -133,9 +133,9 @@ public class ProceduralGeneration : MonoBehaviour
 
     void GeneratePlatforms(int[,] map, int startX, int groundHeight)
     {
-        // Instance 0 (first chunk) and starting chunk have no platforms
+        // Instances 0, 1, 2 and starting chunk have no platforms
         int chunkIndex = startX / width;
-        if (chunkIndex == 0 || chunkIndex == playerStartChunk)
+        if (chunkIndex == 0 || chunkIndex == 1 || chunkIndex == 2 || chunkIndex == playerStartChunk)
         {
             Debug.Log($"Chunk {chunkIndex} - No platforms (no platform zone)");
             return;

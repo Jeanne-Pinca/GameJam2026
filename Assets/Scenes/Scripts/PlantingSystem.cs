@@ -33,8 +33,21 @@ public class PlantingSystem : MonoBehaviour
             Debug.LogError("SustenanceSystem not found in scene!");
         }
     }
+    
+    // Helper method to normalize positions for consistent HashSet comparisons
+    Vector3 NormalizePosition(Vector3 pos) {
+        // Round to 2 decimal places to avoid floating point precision issues
+        return new Vector3(
+            Mathf.Round(pos.x * 100f) / 100f,
+            Mathf.Round(pos.y * 100f) / 100f,
+            0f
+        );
+    }
 
     void Update() {
+        // Clean up destroyed plants
+        CleanupDestroyedPlants();
+        
         // Plant Seed with 'Q' (Only in Past)
         if (Input.GetKeyDown(KeyCode.Q) && timeSwitch.isPastMode) {
             AttemptPlanting();
@@ -42,6 +55,33 @@ public class PlantingSystem : MonoBehaviour
         
         // Track which seeds have been passed by the player
         UpdatePassedSeeds();
+    }
+    
+    void CleanupDestroyedPlants() {
+        // Remove null references and clean up tracking data
+        List<GameObject> plantsToRemove = new List<GameObject>();
+        
+        foreach (GameObject plant in plantedSeeds) {
+            if (plant == null) {
+                plantsToRemove.Add(plant);
+            }
+        }
+        
+        foreach (GameObject plant in plantsToRemove) {
+            // Get position before removing from dictionary
+            Vector3 plantPos = Vector3.zero;
+            if (seedWorldPositions.ContainsKey(plant)) {
+                plantPos = seedWorldPositions[plant];
+            }
+            
+            plantedSeeds.Remove(plant);
+            plantedPositions.Remove(NormalizePosition(plantPos));
+            seedHeights.Remove(plant);
+            seedWorldPositions.Remove(plant);
+            maxSafeHeights.Remove(plant);
+            passedSeeds.Remove(plant);
+            grownSeeds.Remove(plant);
+        }
     }
     
     void UpdatePassedSeeds() {
@@ -132,14 +172,21 @@ public class PlantingSystem : MonoBehaviour
             }
         }
         
-        // Remove cleared seeds from lists
+        // Remove cleared seeds from all tracking lists
         foreach (GameObject seed in seedsToRemove) {
+            // Get position before removing from dictionary
+            Vector3 seedPos = Vector3.zero;
+            if (seedWorldPositions.ContainsKey(seed)) {
+                seedPos = seedWorldPositions[seed];
+            }
+            
             plantedSeeds.Remove(seed);
-            plantedPositions.Remove(seedWorldPositions[seed]);
+            plantedPositions.Remove(NormalizePosition(seedPos)); // Remove the position from HashSet
             seedHeights.Remove(seed);
             seedWorldPositions.Remove(seed);
             maxSafeHeights.Remove(seed);
             passedSeeds.Remove(seed);
+            grownSeeds.Remove(seed); // Also remove from grown seeds
         }
         
         if (seedsToRemove.Count > 0) {
@@ -336,6 +383,23 @@ public class PlantingSystem : MonoBehaviour
         }
     }
 
+    public bool CanPlantHere() {
+        // Determine which direction the player is facing based on their scale
+        float facingDirection = playerPos.localScale.x > 0 ? 1f : -1f;
+        
+        // Start the ray from player position
+        Vector2 rayStart = playerPos.position;
+        
+        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, checkDistance, groundLayer);
+        
+        if (hit.collider != null) {
+            Vector3 spawnPos = new Vector3(hit.point.x + (1f * facingDirection), hit.point.y + 0.5f, 0f);
+            return CanPlantAtPosition(spawnPos);
+        }
+        
+        return false;
+    }
+
     void AttemptPlanting() {
         // Determine which direction the player is facing based on their scale
         float facingDirection = playerPos.localScale.x > 0 ? 1f : -1f;
@@ -366,8 +430,11 @@ public class PlantingSystem : MonoBehaviour
     }
 
     bool CanPlantAtPosition(Vector3 spawnPos) {
+        // Normalize position for consistent comparison
+        Vector3 normalizedPos = NormalizePosition(spawnPos);
+        
         // Check if already planted at this position
-        if (plantedPositions.Contains(spawnPos)) {
+        if (plantedPositions.Contains(normalizedPos)) {
             Debug.Log("Already planted here!");
             return false;
         }
@@ -386,6 +453,21 @@ public class PlantingSystem : MonoBehaviour
                 Debug.Log("Something is blocking this spot!");
                 return false;
             }
+        }
+        
+        // Check for continuous ground support under the entire plant footprint (~1 unit wide)
+        float plantWidth = 1f;
+        float leftCheckPos = spawnPos.x - plantWidth * 0.5f;
+        float rightCheckPos = spawnPos.x + plantWidth * 0.5f;
+        
+        RaycastHit2D groundCheckLeft = Physics2D.Raycast(new Vector2(leftCheckPos, spawnPos.y), Vector2.down, checkDistance, groundLayer);
+        RaycastHit2D groundCheckRight = Physics2D.Raycast(new Vector2(rightCheckPos, spawnPos.y), Vector2.down, checkDistance, groundLayer);
+        RaycastHit2D groundCheckCenter = Physics2D.Raycast(spawnPos, Vector2.down, checkDistance, groundLayer);
+        
+        // Ensure all three points have ground support (plant must be fully supported)
+        if (groundCheckLeft.collider == null || groundCheckRight.collider == null || groundCheckCenter.collider == null) {
+            Debug.Log("Ground support insufficient! Plant must be fully supported.");
+            return false;
         }
         
         // Check for collisions at all possible plant heights (1-3 units)
@@ -412,8 +494,31 @@ public class PlantingSystem : MonoBehaviour
         RaycastHit2D leftObstacleHit = Physics2D.Raycast(spawnPos, Vector2.left, sideCheckDistance, obstacleLayer);
         RaycastHit2D rightObstacleHit = Physics2D.Raycast(spawnPos, Vector2.right, sideCheckDistance, obstacleLayer);
         
-        // Can plant if no obstacles on either side
-        return leftObstacleHit.collider == null && rightObstacleHit.collider == null;
+        if (leftObstacleHit.collider != null) {
+            Debug.Log("Wall blocking on left side!");
+            return false;
+        }
+        
+        if (rightObstacleHit.collider != null) {
+            Debug.Log("Wall blocking on right side!");
+            return false;
+        }
+        
+        // Check for walls/obstacles at plant's maximum height to prevent plants growing into walls
+        for (int height = 1; height <= maxSafeHeight; height++) {
+            Vector2 plantTopPos = new Vector2(spawnPos.x, spawnPos.y + height);
+            RaycastHit2D leftWallCheck = Physics2D.Raycast(plantTopPos, Vector2.left, sideCheckDistance, obstacleLayer);
+            RaycastHit2D rightWallCheck = Physics2D.Raycast(plantTopPos, Vector2.right, sideCheckDistance, obstacleLayer);
+            
+            if (leftWallCheck.collider != null || rightWallCheck.collider != null) {
+                Debug.Log($"Wall would block plant growth at height {height}! Limiting max height.");
+                maxSafeHeight = height - 1;
+                if (maxSafeHeight < 1) maxSafeHeight = 1;
+                break;
+            }
+        }
+        
+        return true;
     }
 
     void PlantInPast(Vector3 pos) {
@@ -472,8 +577,8 @@ public class PlantingSystem : MonoBehaviour
             }
         }
         
-        // Track this position as planted
-        plantedPositions.Add(pos);
+        // Track this position as planted (normalized for consistency)
+        plantedPositions.Add(NormalizePosition(pos));
         
         // Instantiate at the corrected position
         GameObject newSeed = Instantiate(sproutPrefab, pos, Quaternion.identity);
