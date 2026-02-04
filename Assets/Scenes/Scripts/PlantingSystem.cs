@@ -24,7 +24,6 @@ public class PlantingSystem : MonoBehaviour
     private HashSet<GameObject> grownSeeds = new HashSet<GameObject>(); // Track which seeds have already given sustenance
     private TimeSwitch timeSwitch;
     private SustenanceSystem sustenanceSystem;
-    private float clearVicinity = 2f; // Distance threshold for marking seeds as passed
 
     void Start() {
         timeSwitch = GetComponent<TimeSwitch>();
@@ -389,23 +388,6 @@ public class PlantingSystem : MonoBehaviour
             }
         }
         
-        // Check if the bottom of the seed collider is supported by ground
-        // Assuming seed is 1 unit wide, check both left and right edges to ensure full support
-        Vector2 seedLeftBottom = new Vector2(spawnPos.x - 0.4f, spawnPos.y - 0.5f);
-        Vector2 seedRightBottom = new Vector2(spawnPos.x + 0.4f, spawnPos.y - 0.5f);
-        
-        RaycastHit2D groundSupportLeft = Physics2D.Raycast(seedLeftBottom, Vector2.down, 0.1f, groundLayer);
-        RaycastHit2D groundSupportRight = Physics2D.Raycast(seedRightBottom, Vector2.down, 0.1f, groundLayer);
-        
-        // Both sides must have ground support
-        if (groundSupportLeft.collider == null || groundSupportRight.collider == null) {
-            Debug.Log("Seed not fully supported by ground!");
-            return false;
-        }
-        
-        // Check all sides of the seed for tile collisions (assuming 1x1 seed size)
-        float seedHalfSize = 0.5f;
-        
         // Check for collisions at all possible plant heights (1-3 units)
         // to determine the maximum safe height for this position
         int maxSafeHeight = 3;
@@ -426,21 +408,7 @@ public class PlantingSystem : MonoBehaviour
             return false;
         }
         
-        // Check left side
-        RaycastHit2D leftHit = Physics2D.Raycast(spawnPos, Vector2.left, seedHalfSize, groundLayer);
-        if (leftHit.collider != null) {
-            Debug.Log("Tile blocking left of seed!");
-            return false;
-        }
-        
-        // Check right side
-        RaycastHit2D rightHit = Physics2D.Raycast(spawnPos, Vector2.right, seedHalfSize, groundLayer);
-        if (rightHit.collider != null) {
-            Debug.Log("Tile blocking right of seed!");
-            return false;
-        }
-        
-        // Check for obstacles on left and right (original obstacle check)
+        // Check for obstacles on left and right
         RaycastHit2D leftObstacleHit = Physics2D.Raycast(spawnPos, Vector2.left, sideCheckDistance, obstacleLayer);
         RaycastHit2D rightObstacleHit = Physics2D.Raycast(spawnPos, Vector2.right, sideCheckDistance, obstacleLayer);
         
