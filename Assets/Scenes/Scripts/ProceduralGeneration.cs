@@ -57,6 +57,71 @@ public class ProceduralGeneration : MonoBehaviour
         }
     }
     */
+    public void ResetGame()
+    {
+        // Randomize seed for new terrain generation
+        seed = Random.Range(0, 10000);
+        
+        // Destroy the old left boundary wall if it exists
+        if (leftBoundaryWall != null)
+        {
+            Destroy(leftBoundaryWall);
+        }
+        
+        GenerateInitialChunks();
+    }
+
+    public Transform GetTargetCamera()
+    {
+        return targetCamera;
+    }
+
+    public void ForceChunkUpdate()
+    {
+        // Force chunk generation at the current camera position
+        if (targetCamera != null)
+        {
+            int centerChunk = Mathf.FloorToInt(targetCamera.position.x / width);
+            UpdateChunks(centerChunk);
+            lastCenterChunk = centerChunk;
+        }
+    }
+
+    public void RegenerateTerrainAtLocation()
+    {
+        // Regenerate terrain the same way as initial generation at the new camera location
+        if (targetCamera != null)
+        {
+            // Clear all tiles first
+            groundTilemap_Past.ClearAllTiles();
+            groundTilemap_Present.ClearAllTiles();
+            
+            generatedChunks.Clear();
+            lastCenterChunk = int.MinValue;
+            allowBackwardGeneration = false;
+            
+            // Calculate the leftmost chunk visible in the camera
+            Camera cam = targetCamera.GetComponent<Camera>();
+            float cameraWidth = cam.orthographicSize * 2f * cam.aspect;
+            float cameraLeftEdge = targetCamera.position.x - (cameraWidth / 2f);
+            int leftChunk = Mathf.FloorToInt(cameraLeftEdge / width);
+            
+            initialLeftBoundary = leftChunk;
+            int centerChunk = Mathf.FloorToInt(targetCamera.position.x / width);
+            playerStartChunk = centerChunk;
+            
+            UpdateChunks(centerChunk);
+            lastCenterChunk = centerChunk;
+            
+            // Recreate the left boundary wall at the new location
+            if (leftBoundaryWall != null)
+            {
+                Destroy(leftBoundaryWall);
+            }
+            CreateLeftBoundaryWall();
+        }
+    }
+
     void GenerateInitialChunks()
     {
         groundTilemap_Past.ClearAllTiles();

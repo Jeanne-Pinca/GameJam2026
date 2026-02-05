@@ -50,6 +50,26 @@ public class SustenanceSystem : MonoBehaviour
         Debug.Log("Sustenance System started.");
     }
 
+    public void ResetSustenance()
+    {
+        currentSustenance = maxSustenance;
+        isGameOver = false;
+        hasWon = false;
+        isPaused = true; // Start paused again
+        currentInstance = 0;
+        previousInstance = -1;
+        plantedInPreviousInstance = false;
+        hasReceivedInstanceBonus = false;
+        
+        if (sustenanceBar != null)
+        {
+            sustenanceBar.fillAmount = 1f;
+        }
+        
+        Time.timeScale = 1f; // Resume time in case it was paused
+        Debug.Log("Sustenance system reset.");
+    }
+
     void Update() {
         if (cameraTransform == null || isGameOver) return;
         

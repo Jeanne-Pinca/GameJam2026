@@ -9,19 +9,28 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private RuntimeAnimatorController defaultAnimatorController;
     [SerializeField] private RuntimeAnimatorController maskedAnimatorController;
     
+    // Debug teleport
+    [SerializeField] private Vector2 debugTeleportPosition = new Vector2(45f, 3f);
+    private float teleportHoldTime = 0f;
+    private const float TELEPORT_HOLD_DURATION = 2f;
+    
     private Rigidbody2D rb;
     private Animator animator;
     private TimeSwitch timeSwitch;
+    private ProceduralGeneration procGen;
     private bool lastPastMode = false;
     private bool isGrounded = true;
     private bool isJumping = false;
     private float jumpTimeCounter;
+    private Vector3 startPosition; // Store initial position for reset
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         timeSwitch = FindObjectOfType<TimeSwitch>();
+        procGen = FindObjectOfType<ProceduralGeneration>();
+        startPosition = transform.position; // Save the starting position
         
         // Create and apply a physics material with zero friction for smooth wall sliding
         PhysicsMaterial2D playerMaterial = new PhysicsMaterial2D();
@@ -35,8 +44,65 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void ResetPlayer()
+    {
+        // Reset position to starting location
+        transform.position = startPosition;
+        
+        // Reset velocity
+        rb.velocity = Vector2.zero;
+        
+        // Reset jump state
+        isJumping = false;
+        isGrounded = false;
+        jumpTimeCounter = 0f;
+        teleportHoldTime = 0f;
+        
+        // Reset animator
+        if (animator != null)
+        {
+            animator.Rebind();
+            animator.Update(0f);
+        }
+        
+        // CRITICAL: Also reset camera position to player position so terrain generates from the right location
+        if (procGen != null && procGen.GetTargetCamera() != null)
+        {
+            Transform cam = procGen.GetTargetCamera();
+            cam.position = new Vector3(startPosition.x, startPosition.y, cam.position.z);
+        }
+        
+        Debug.Log("Player reset to starting position: " + startPosition);
+    }
+
     void Update()
     {
+        // Debug teleport: Hold Z for 3 seconds
+        if (Input.GetKey(KeyCode.Z))
+        {
+            teleportHoldTime += Time.deltaTime;
+            if (teleportHoldTime >= TELEPORT_HOLD_DURATION)
+            {
+                transform.position = debugTeleportPosition;
+                rb.velocity = Vector2.zero;
+                isGrounded = false; // Let physics detect ground naturally after falling
+                transform.localScale = new Vector3(1, 1, 1); // Face right after teleport
+                teleportHoldTime = 0f;
+                
+                // Regenerate terrain properly at the new location
+                if (procGen != null)
+                {
+                    procGen.RegenerateTerrainAtLocation();
+                }
+                
+                Debug.Log($"Teleported to {debugTeleportPosition}");
+            }
+        }
+        else
+        {
+            teleportHoldTime = 0f;
+        }
+        
         // Check if mode switched and update animator
         if (timeSwitch != null && timeSwitch.isPastMode != lastPastMode)
         {
