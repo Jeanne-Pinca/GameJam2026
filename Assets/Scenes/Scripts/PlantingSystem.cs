@@ -13,7 +13,7 @@ public class PlantingSystem : MonoBehaviour
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private float checkDistance = 1.5f;
     [SerializeField] private float sideCheckDistance = 1f;
-    [SerializeField] private float playerMinDistance = 1.5f;
+    [SerializeField] private float playerMinDistance = 0.5f;
     
     private HashSet<Vector3> plantedPositions = new HashSet<Vector3>();
     private List<GameObject> plantedSeeds = new List<GameObject>();
@@ -28,10 +28,35 @@ public class PlantingSystem : MonoBehaviour
     void Start() {
         timeSwitch = GetComponent<TimeSwitch>();
         sustenanceSystem = FindObjectOfType<SustenanceSystem>();
+
+        playerMinDistance = Mathf.Min(playerMinDistance, 0.9f);
         
         if (sustenanceSystem == null) {
             Debug.LogError("SustenanceSystem not found in scene!");
         }
+    }
+    
+    public void ResetPlants()
+    {
+        // Destroy all planted seeds and plants
+        foreach (GameObject plant in plantedSeeds)
+        {
+            if (plant != null)
+            {
+                Destroy(plant);
+            }
+        }
+        
+        // Clear all tracking data
+        plantedSeeds.Clear();
+        plantedPositions.Clear();
+        seedHeights.Clear();
+        seedWorldPositions.Clear();
+        maxSafeHeights.Clear();
+        passedSeeds.Clear();
+        grownSeeds.Clear();
+        
+        Debug.Log("All plants reset.");
     }
     
     // Helper method to normalize positions for consistent HashSet comparisons
@@ -439,17 +464,17 @@ public class PlantingSystem : MonoBehaviour
             return false;
         }
         
-        // Check if player is too close to the spawn position
-        float distToPlayer = Vector3.Distance(playerPos.position, spawnPos);
+        // Check horizontal distance only to avoid false positives from vertical offsets
+        float distToPlayer = Mathf.Abs(playerPos.position.x - spawnPos.x);
         if (distToPlayer < playerMinDistance) {
             Debug.Log("Too close to player!");
             return false;
         }
         
-        // Check if there's a collider at the spawn position (from planted seeds)
+        // Check if there's a collider at the spawn position (from planted seeds) - ignore player
         Collider2D[] collidersAtPos = Physics2D.OverlapCircleAll(spawnPos, 0.2f);
         foreach (Collider2D col in collidersAtPos) {
-            if (col.gameObject != gameObject) {
+            if (col.gameObject != gameObject && col.gameObject != playerPos.gameObject) {
                 Debug.Log("Something is blocking this spot!");
                 return false;
             }
@@ -478,7 +503,7 @@ public class PlantingSystem : MonoBehaviour
             RaycastHit2D topHit = Physics2D.Raycast(spawnPos, Vector2.up, height, groundLayer);
             // Ignore the player when checking for blocking colliders
             if (topHit.collider != null && topHit.collider.gameObject != playerPos.gameObject) {
-                maxSafeHeight = height - 1; // Max safe is one less than the blocking height
+                maxSafeHeight = height - 1; 
                 if (maxSafeHeight < 1) maxSafeHeight = 1; // Ensure at least height 1 is possible
                 break;
             }
@@ -490,16 +515,16 @@ public class PlantingSystem : MonoBehaviour
             return false;
         }
         
-        // Check for obstacles on left and right
+        // Check for obstacles on left and right (ignore player)
         RaycastHit2D leftObstacleHit = Physics2D.Raycast(spawnPos, Vector2.left, sideCheckDistance, obstacleLayer);
         RaycastHit2D rightObstacleHit = Physics2D.Raycast(spawnPos, Vector2.right, sideCheckDistance, obstacleLayer);
         
-        if (leftObstacleHit.collider != null) {
+        if (leftObstacleHit.collider != null && leftObstacleHit.collider.gameObject != playerPos.gameObject) {
             Debug.Log("Wall blocking on left side!");
             return false;
         }
         
-        if (rightObstacleHit.collider != null) {
+        if (rightObstacleHit.collider != null && rightObstacleHit.collider.gameObject != playerPos.gameObject) {
             Debug.Log("Wall blocking on right side!");
             return false;
         }
@@ -510,7 +535,8 @@ public class PlantingSystem : MonoBehaviour
             RaycastHit2D leftWallCheck = Physics2D.Raycast(plantTopPos, Vector2.left, sideCheckDistance, obstacleLayer);
             RaycastHit2D rightWallCheck = Physics2D.Raycast(plantTopPos, Vector2.right, sideCheckDistance, obstacleLayer);
             
-            if (leftWallCheck.collider != null || rightWallCheck.collider != null) {
+            if ((leftWallCheck.collider != null && leftWallCheck.collider.gameObject != playerPos.gameObject) || 
+                (rightWallCheck.collider != null && rightWallCheck.collider.gameObject != playerPos.gameObject)) {
                 Debug.Log($"Wall would block plant growth at height {height}! Limiting max height.");
                 maxSafeHeight = height - 1;
                 if (maxSafeHeight < 1) maxSafeHeight = 1;

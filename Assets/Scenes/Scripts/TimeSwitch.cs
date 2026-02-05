@@ -50,6 +50,27 @@ public class TimeSwitch : MonoBehaviour
         ToggleTilemaps();
     }
 
+    public void ResetToPresent()
+    {
+        // Reset to present mode
+        isPastMode = false;
+        
+        // Update all visuals to match present mode
+        ToggleTimelineVisibility();
+        ChangeCameraBackgroundColor();
+        UpdateMaskOpacity();
+        UpdateBackgroundFilter();
+        ToggleTilemaps();
+        
+        // Scale plants back to present mode if needed
+        if (plantingSystem != null)
+        {
+            plantingSystem.ScalePlantedSeedsToPresentMode();
+        }
+        
+        Debug.Log("Reset to PRESENT time mode");
+    }
+
     void Update() {
         // Update background filter based on player distance (in present mode only)
         if (!isPastMode && player != null) {

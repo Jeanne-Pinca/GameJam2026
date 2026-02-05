@@ -94,6 +94,41 @@ public class MenuManager : MonoBehaviour
         if (pauseMenuPanel != null)
             pauseMenuPanel.SetActive(false);
         
+        // Reset player position FIRST so camera is at starting location before terrain generation
+        PlayerMovement playerMovement = FindObjectOfType<PlayerMovement>();
+        if (playerMovement != null)
+        {
+            playerMovement.ResetPlayer();
+        }
+        
+        // Reset the game by calling the procedural generation reset
+        ProceduralGeneration procGen = FindObjectOfType<ProceduralGeneration>();
+        if (procGen != null)
+        {
+            procGen.ResetGame();
+        }
+        
+        // Reset all plants
+        PlantingSystem plantingSystem = FindObjectOfType<PlantingSystem>();
+        if (plantingSystem != null)
+        {
+            plantingSystem.ResetPlants();
+        }
+        
+        // Reset sustenance bar
+        SustenanceSystem sustenanceSystem = FindObjectOfType<SustenanceSystem>();
+        if (sustenanceSystem != null)
+        {
+            sustenanceSystem.ResetSustenance();
+        }
+        
+        // Reset to present mode
+        TimeSwitch timeSwitch = FindObjectOfType<TimeSwitch>();
+        if (timeSwitch != null)
+        {
+            timeSwitch.ResetToPresent();
+        }
+        
         Debug.Log("Game started");
     }
     
