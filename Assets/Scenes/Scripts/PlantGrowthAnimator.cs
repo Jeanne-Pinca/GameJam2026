@@ -7,7 +7,7 @@ public class PlantGrowthAnimator : MonoBehaviour
     
     public static bool IsPlantGrowing => activeGrowthAnimations > 0;
     
-    public static IEnumerator AnimatePlantGrowth(GameObject seed, float targetScale, Transform playerPos, float animationDuration = 0.5f)
+    public static IEnumerator AnimatePlantGrowth(GameObject seed, float targetScale, Transform playerPos, MonoBehaviour monoBehaviour = null, float animationDuration = 0.5f)
     {
         activeGrowthAnimations++; // Increment counter when animation starts
         float elapsedTime = 0f;
@@ -70,6 +70,37 @@ public class PlantGrowthAnimator : MonoBehaviour
         seed.transform.localScale = originalScale;
         
         activeGrowthAnimations--; // Decrement counter when animation finishes
+        
+        // Start swaying the plant after it finishes growing
+        if (seed != null && monoBehaviour != null)
+        {
+            monoBehaviour.StartCoroutine(SwayPlant(seed));
+        }
+    }
+    
+    // Continuous swaying effect for planted plants
+    public static IEnumerator SwayPlant(GameObject plant)
+    {
+        float elapsedTime = 0f;
+        Vector3 originalPos = plant.transform.position;
+        Vector3 originalScale = plant.transform.localScale;
+        Collider2D plantCollider = plant.GetComponent<Collider2D>();
+        float plantHeight = plantCollider != null ? plantCollider.bounds.size.y : 1f;
+        
+        while (plant != null)
+        {
+            elapsedTime += Time.deltaTime;
+            
+            // Only distort the top by scaling Y while keeping bottom anchored
+            float stretchAmount = 1f + (Mathf.Sin(elapsedTime * 2f) * 0.08f); // Compress and stretch by 15%
+            plant.transform.localScale = new Vector3(originalScale.x, originalScale.y * stretchAmount, originalScale.z);
+            
+            // Adjust position to keep the bottom anchored while only the top moves
+            float positionOffset = (stretchAmount - 1f) * (plantHeight * 0.5f);
+            plant.transform.position = new Vector3(originalPos.x, originalPos.y + positionOffset, originalPos.z);
+            
+            yield return null;
+        }
     }
     
     // Bounce easing function for a fun bouncy effect

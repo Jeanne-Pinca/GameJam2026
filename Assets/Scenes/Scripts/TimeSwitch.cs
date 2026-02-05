@@ -11,8 +11,8 @@ public class TimeSwitch : MonoBehaviour
     [SerializeField] private Tilemap groundTilemap_Past;
     [SerializeField] private Tilemap groundTilemap_Present;
     [SerializeField] private Color pastModeColor = new Color(0.5f, 0.5f, 0.5f); // Past mode background color
-    [SerializeField] private Color presentModeColor = new Color(0.3f, 0.5f, 0.8f); // Present mode background color
-    [SerializeField] private Color presentFilterColor = new Color(0.7f, 0.7f, 0.7f, 1f); // Gray filter for present mode
+    [SerializeField] private Color presentModeColor = new Color(0.267f, 0.518f, 0.765f); // Present mode background color (#4484C3)
+    [SerializeField] private Color presentFilterColor = new Color(0.5f, 0.5f, 0.5f, 1f); // Darker gray filter for present mode
     // TODO: When importing assets, use ResourceLoad: Camera.main.backgroundColor = Resources.Load<Color>("Colors/PastColor");
     
     private PlantingSystem plantingSystem;
@@ -122,11 +122,16 @@ public class TimeSwitch : MonoBehaviour
                 float cameraX = mainCamera.transform.position.x;
                 int currentInstance = Mathf.FloorToInt(cameraX / chunkWidth);
                 
-                // Distance to last instance
-                int distanceToEnd = maxInstance - currentInstance;
-                
-                // Fade the alpha based on distance to last instance
-                float fadeAlpha = Mathf.Clamp01((float)distanceToEnd / filterFadeDistance);
+                // Filter only starts clearing up from instance 2 onwards
+                float fadeAlpha;
+                if (currentInstance < 2) {
+                    // Instances 0 and 1: full filter
+                    fadeAlpha = 1f;
+                } else {
+                    // Instance 2 and beyond: fade the filter
+                    int distanceFromInstance2 = currentInstance - 2;
+                    fadeAlpha = Mathf.Clamp01(1f - ((float)distanceFromInstance2 / filterFadeDistance));
+                }
                 
                 // Fade from gray filter to white (no filter, showing original background)
                 Color filterColor = Color.Lerp(Color.white, presentFilterColor, fadeAlpha);

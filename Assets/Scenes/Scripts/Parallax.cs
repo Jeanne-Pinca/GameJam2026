@@ -27,11 +27,17 @@ public class Parallax : MonoBehaviour
         transform.position += new Vector3(deltaMovement.x * parallaxFactor, 0, 0);
         lastCamPos = cam.position;
 
-        // Reposition for endless scrolling
-        if (Mathf.Abs(cam.position.x - transform.position.x) >= textureUnitSizeX)
+        // Seamless endless scrolling with multiple sprites
+        float distanceFromCamera = transform.position.x - cam.position.x;
+        
+        // When sprite moves more than one full width away, reposition it on the other side
+        if (distanceFromCamera > textureUnitSizeX)
         {
-            float offsetPositionX = (cam.position.x - transform.position.x) % textureUnitSizeX;
-            transform.position = new Vector3(cam.position.x + offsetPositionX, transform.position.y);
+            transform.position = new Vector3(transform.position.x - (textureUnitSizeX * 2f), transform.position.y, transform.position.z);
+        }
+        else if (distanceFromCamera < -textureUnitSizeX)
+        {
+            transform.position = new Vector3(transform.position.x + (textureUnitSizeX * 2f), transform.position.y, transform.position.z);
         }
     }
 }

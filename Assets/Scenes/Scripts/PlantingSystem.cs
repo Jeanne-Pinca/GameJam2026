@@ -315,7 +315,7 @@ public class PlantingSystem : MonoBehaviour
                     }
                     
                     // Animate the plant with growth animation (pass height for bounce movement, not scaling)
-                    StartCoroutine(PlantGrowthAnimator.AnimatePlantGrowth(newPlant, height, playerOnSeed ? playerPos : null, 0.5f));
+                    StartCoroutine(PlantGrowthAnimator.AnimatePlantGrowth(newPlant, height, playerOnSeed ? playerPos : null, this, 0.5f));
                     
                     // Track grown plants
                     if (!grownSeeds.Contains(newPlant)) {
