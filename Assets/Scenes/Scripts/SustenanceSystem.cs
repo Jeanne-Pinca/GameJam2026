@@ -21,6 +21,7 @@ public class SustenanceSystem : MonoBehaviour
     private bool hasWon = false;
     private bool plantedInPreviousInstance = false;
     private bool hasReceivedInstanceBonus = false;
+    private bool isPaused = true; // Start paused, unpause at instance 3
     private PlantingSystem plantingSystem;
     private TimeSwitch timeSwitch;
 
@@ -52,7 +53,10 @@ public class SustenanceSystem : MonoBehaviour
     void Update() {
         if (cameraTransform == null || isGameOver) return;
         
-        DecreaseSustenance(sustenanceDecreaseRate * Time.deltaTime);
+        // Only decrease sustenance if not paused
+        if (!isPaused) {
+            DecreaseSustenance(sustenanceDecreaseRate * Time.deltaTime);
+        }
         
         previousInstance = currentInstance;
         currentInstance = Mathf.FloorToInt(cameraTransform.position.x / chunkWidth);
@@ -74,6 +78,12 @@ public class SustenanceSystem : MonoBehaviour
     }
     
     void OnEnterNewInstance() {
+        // Start decreasing sustenance bar when entering instance 3
+        if (currentInstance >= 3 && isPaused) {
+            isPaused = false;
+            Debug.Log("▶ Sustenance bar STARTED decreasing at instance 3");
+        }
+        
         // Award +1 sustenance ONLY if ALL conditions are met:
         // 1. Player planted in previous instance
         // 2. Player enters next instance (this method is called)
@@ -146,6 +156,10 @@ public class SustenanceSystem : MonoBehaviour
 
     public float GetSustenance() {
         return currentSustenance;
+    }
+
+    public bool IsGameOver() {
+        return isGameOver;
     }
 
     public int GetCurrentInstance() {
